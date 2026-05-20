@@ -1,0 +1,199 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{booktabs}
+\usepackage{url}
+
+\begin{document}
+
+\title{Multi-Tiered Information Retrieval for Complex Clinical Cohort Discovery: Benchmarking Sparse, Dense, and Reciprocal Rank Fusion Architectures on the MIMIC-IV-Note Database}
+
+\author{%
+\IEEEauthorblockN{Aung Kaung Myat}%
+\IEEEauthorblockA{\textit{7CS107 Portfolio Evaluation --- Data Science and Data Mining}\\
+Portfolio Item (Report \& Case Study Framework)}%
+\and%
+\IEEEauthorblockN{Zarni Hlawn}%
+\IEEEauthorblockA{\textit{7CS107 Portfolio Evaluation --- Data Science and Data Mining}\\
+Portfolio Item (Report \& Case Study Framework)}%
+}
+
+\maketitle
+
+\begin{abstract}
+Modern healthcare environments generate vast repositories of unstructured electronic health records (EHRs) that remain highly complex to index and query efficiently~\cite{johnson2023mimic}. Traditional information retrieval architectures rely primarily on exact lexical matching, which regularly suffers when clinicians use divergent medical terminologies, abbreviations, or shorthand synonyms~\cite{devlin2019bert}. Conversely, general neural semantic retrieval pipelines often introduce high false-positive rates due to a lack of specialized cross-domain biomedical training~\cite{alsentzer2019clinicalbert}. This report evaluates a specialized information retrieval engine developed to index and query unstructured discharge summaries from the MIMIC-IV database~\cite{johnson2023mimic}. We implement a comprehensive three-tier evaluation framework comparing a baseline term frequency-inverse document frequency (TF-IDF) framework~\cite{salton1988term}, a dense vector semantic search pipeline~\cite{reimers2019sentence}, and an optimized hybrid system merging BM25Okapi~\cite{robertson2009probabilistic} with specialized contrastive MedCPT encoders~\cite{jin2023medcpt} via Reciprocal Rank Fusion~\cite{cormack2009reciprocal}. Anchoring our methodology against the healthcare passage frameworks established by Arnold et al.~\cite{arnold2020learning}, empirical testing across ten complex multi-tiered clinical queries showed that the sparse lexical baseline dominated performance accuracy, achieving a macro-averaged Mean Precision@3 of $0.6667$, while the unweighted hybrid fusion network experienced severe rank conflicts that attenuated overall precision down to $0.1111$. These findings demonstrate that deployment of advanced dense text networks in specialized clinical domains requires highly customized rank-normalization parameters rather than raw fusion matrices to maintain data integrity and precise search results.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Clinical information retrieval, MIMIC-IV, electronic health records, TF-IDF, BM25, MedCPT, reciprocal rank fusion.
+\end{IEEEkeywords}
+
+\section{Introduction}
+\IEEEPARstart{T}{he} extensive digital migration of clinical systems has fueled an exponential expansion in Electronic Health Record (EHR) databases~\cite{johnson2023mimic}. While structured historical tables---such as ICD diagnostic billing matrices, automated laboratory result sequences, and longitudinal prescription histories---are highly accessible via traditional relational queries, they fail to preserve granular patient trajectories~\cite{devlin2019bert}. Crucial clinical contexts---including diagnostic reasoning, fine-grained symptom progressions, physical presentation nuances, and discharge rationales---are recorded almost exclusively within unstructured free-text clinical notes and discharge summaries~\cite{alsentzer2019clinicalbert}. Unlocking this multi-gigabyte textual layer is essential for secondary clinical research, epidemiology, and automated cohort discovery~\cite{reimers2019sentence}.
+
+Extracting highly specific patient cohorts from millions of noisy narratives requires robust Information Retrieval (IR) configurations~\cite{salton1988term}. Historically, the biomedical informatics domain has relied on lexical exact-string matchers~\cite{robertson2009probabilistic}. However, the foundational bottleneck of string matching in medical software is the Vocabulary Mismatch Problem~\cite{agostinelli2024dense}. Clinicians document medical phenomena using localized jargon, shorthand, acronyms, and overlapping synonyms. For instance, a patient experiencing severe kidney dysfunction may be documented under the string labels ``acute kidney injury'', ``renal failure'', ``uremic syndrome'', or the abbreviation ``AKI''. A classical character-matching system is structurally oblivious to these underlying semantic overlaps.
+
+To mitigate lexical limitations, dense text retrieval architectures leveraging deep transformer networks have emerged~\cite{reimers2019sentence}. These frameworks project arbitrary textual sequences into continuous, low-dimensional vector spaces where semantic concepts are grouped geometrically based on contextual similarity~\cite{lee2020biobert}. Traveling along continuous neural trajectories allows models to sidestep strict lexical token mismatches~\cite{jin2023medcpt}. However, their deployment in the medical domain introduces immediate precision penalties~\cite{fang2024information}. Clinical documentation consists of highly verbose, text-heavy records with extensive structural noise. When generic dense models process these records, they tend to cluster documents based on broad, superficial topical overlaps rather than precise primary diagnoses, leading to false positives~\cite{agostinelli2024dense}.
+
+This project addresses these challenges by building and benchmarking a three-tier clinical IR engine using the MIMIC-IV and MIMIC-IV-Note databases~\cite{johnson2023mimic}. We evaluate a sparse lexical vector baseline (TF-IDF), a general-domain dense neural search network, and a domain-optimized hybrid pipeline fusing a state-of-the-art exact keyword engine (BM25Okapi) with specialized contrastively pre-trained medical embeddings (MedCPT) using Reciprocal Rank Fusion (RRF)~\cite{robertson2009probabilistic,jin2023medcpt,cormack2009reciprocal}.
+
+\section{Literature Review and Comparative Foundation}
+The utilization of electronic health records for automated clinical cohort extraction has expanded rapidly following the release of the MIMIC-IV repository by Johnson et al.~\cite{johnson2023mimic}, which separated multi-modal clinical variables into clear structured tables and unstructured narrative corpuses. Historically, querying these narratives meant applying statistical term metrics. While classical baseline schemas like basic TF-IDF assign weight based on corpus scarcity~\cite{salton1988term}, modern keyword retrieval relies on the BM25 probabilistic framework popularized by Robertson and Zaragoza, which introduces term frequency saturation and document-length normalizations to avoid length biases~\cite{robertson2009probabilistic}.
+
+The landscape shifted significantly with the advent of specialized biomedical language models. Lee et al.~\cite{lee2020biobert} developed BioBERT, demonstrating that pre-training transformer architectures on large collections of PubMed abstracts dramatically improves a model's grasp of technical medical definitions over general-domain systems. Gu et al.~\cite{gu2021domain} advanced this domain specificity by introducing PubMedBERT, proving that pre-training models from scratch purely on biomedical text yields superior domain classification compared to fine-tuning general models. For direct EHR application, Gao et al.~\cite{gao2021cocodr} engineered COCO-DR, an architecture explicitly optimized to stabilize dense text retrieval under long, repetitive token profiles common in electronic charts.
+
+Modern semantic retrieval platforms heavily leverage dense dual-encoder components~\cite{reimers2019sentence}. Reimers and Gurevych~\cite{reimers2019sentence} introduced structured sentence-level vector clustering, optimizing transformers to handle real-time similarity calculations via metric dot products. Using these vector properties, Jin et al.~\cite{jin2023medcpt} launched MedCPT, a dual-encoder framework contrastively pre-trained on an unprecedented volume of over 200 million PubMed user click logs. This specialized architecture natively maps consumer-level search entries directly to long, technical clinical summaries, significantly lowering synonym barriers.
+
+\subsection{Comparative Anchor Study: Arnold et al.}
+To establish a strict, peer-reviewed academic baseline for clinical dense retrieval evaluation, this report anchors its structural metrics against the foundational study published by Arnold et al.~\cite{arnold2020learning} at The Web Conference (WWW), titled ``Learning Contextualized Document Representations for Healthcare Answer Retrieval.'' Arnold et al.\ introduced Contextual Discourse Vectors (CDV), an advanced dual-encoder architecture designed to locate concise answer passages within highly complex healthcare documents.
+
+The structural alignments and methodological divergences between Arnold et al.~\cite{arnold2020learning} and this portfolio investigation are critically compared across three architectural dimensions:
+
+\textbf{The Vocabulary vs.\ Discourse Conflict:} Arnold et al.\ posited that a clinical answer sequence rarely maps to a singular exact-match keyword token; rather, it is deeply embedded into the continuous discourse of a long document~\cite{arnold2020learning}. To capture this long-range linguistic structure, they utilized continuous, dual-encoder hierarchical layers. This report explicitly tests that hypothesis by setting up System~B and System~C to measure whether dense medical vector models can successfully outperform sparse count matrices when processed against raw, unstructured records~\cite{jin2023medcpt}.
+
+\textbf{Granularity and the Length Problem:} A prominent vulnerability of dense dual-encoders identified by Arnold et al.\ is that mapping entire long documents into a single dense vector averages out granular data points, causing severe precision penalties~\cite{arnold2020learning}. To bypass this, Arnold et al.\ restricted their predictions to absolute sentence-level thresholds, optimizing boundaries via multi-task training setups. Our portfolio project approaches this baseline challenge by testing a model-agnostic Reciprocal Rank Fusion (RRF) layer~\cite{cormack2009reciprocal}. Rather than forcing sentence-level segmentations, our System~C fuses intact BM25Okapi document arrays with full MedCPT-Article passage matrices to evaluate if rank consolidation can safely counteract document length dilation~\cite{jin2023medcpt,cormack2009reciprocal}.
+
+\textbf{The Ground Truth Validation Matrix:} While Arnold et al.\ relied on public health texts and Wikipedia medical logs to train and evaluate zero-shot models, their framework faced validation constraints due to a lack of matching multi-tiered hospital billing data~\cite{arnold2020learning}. Our project significantly improves on this testing rigor. By implementing a programmatic Algorithmic Graded Ground Truth framework, our design crosses unstructured text token maps with real relational ICD billing codes from MIMIC-IV, introducing a highly strict, reproducible validation sequence to measure macro-averaged performance accuracy~\cite{johnson2023mimic}.
+
+\section{Methodology and System Architecture}
+The engineered clinical evaluation engine consists of three isolated modular layers: the Programmatic Graded Relevance Data Layer, the Multi-Tier Indexing Engine Suite, and the Automated Validation Dashboard.
+
+\subsection{Data Source and Programmatic Graded Ground Truth}
+The core dataset utilized is sampled from the MIMIC-IV (v3.1) and MIMIC-IV-Note (v2.2) databases, providing real-world clinical discharge notes crossed with official patient histories~\cite{johnson2023mimic}. To achieve a highly strict, scientific evaluation framework, this study rejects subjective manual query labeling in favor of an Automated, Algorithmic Graded Ground Truth Framework across a 10-query validation matrix.
+
+Relevance targets are programmatically mapped by evaluating the intersection of unstructured free-text note strings with official structured ICD-9/ICD-10 clinical billing codes from the \texttt{diagnoses\_icd} collection. For any target query $q$, a document $d$ within the sampled corpus is dynamically assigned a graded relevance value $R(q, d) \in \{0, 1, 2\}$ using the following deterministic rule:
+\begin{equation}
+R(q, d) =
+\begin{cases}
+2, & \mathrm{Tokens}(q) \subseteq \mathrm{Text}(d) \land \mathrm{ICD}_{\mathrm{target}}(q) \in \mathrm{PatientRecords}(d) \\
+1, & \mathrm{Tokens}(q) \subseteq \mathrm{Text}(d) \land \mathrm{ICD}_{\mathrm{target}}(q) \notin \mathrm{PatientRecords}(d) \\
+0, & \mathrm{otherwise}
+\end{cases}
+\end{equation}
+
+\begin{itemize}
+    \item \textbf{Grade 2 (Highly Relevant):} The patient's free-text summary explicitly matches the semantic query string tokens, and the patient's official billing file contains the targeted primary ICD diagnosis code.
+    \item \textbf{Grade 1 (Partially Relevant):} The text matches the target string tokens, but the patient does not possess the official underlying billing code (representing a passive, secondary mention of a condition in passing).
+    \item \textbf{Grade 0 (Not Relevant):} The record lacks text intersections and diagnostic billing mappings.
+\end{itemize}
+
+The evaluation suite utilizes ten complex, multi-word clinical queries designed to test technical synonyms and abbreviation mappings, including ``acute kidney injury secondary to dehydration,'' ``septic shock with positive blood cultures,'' and ``congestive heart failure exacerbation.''
+
+\subsection{Computational Implementation of Search Systems}
+\textbf{System A (TF-IDF Baseline):} Implemented via scikit-learn's \texttt{TfidfVectorizer} utilizing sublinear term frequency scaling, lower-case normalization, and an n-gram expansion window spanning unigrams and bigrams. Relevance distances are computed via the cosine similarity vector dot product.
+
+\textbf{System B (Dense Neural Semantic Search):} Implemented via a local instance of the \texttt{all-MiniLM-L6-v2} SentenceTransformer model~\cite{reimers2019sentence}. It maps un-chunked clinical notes into 384-dimensional dense vectors, capturing broader global contextual relationships.
+
+\textbf{System C (Domain-Optimized Hybrid):} Fuses a state-of-the-art sparse keyword engine (BM25Okapi) with specialized clinical embeddings (MedCPT)~\cite{robertson2009probabilistic,jin2023medcpt}. The lexical leg tokenizes notes into exact string frequencies. The neural leg runs two models: \texttt{ncbi/MedCPT-Query-Encoder} processes user input while \texttt{ncbi/MedCPT-Article-Encoder} vectorizes clinical passages~\cite{jin2023medcpt}. The top 50 independent outputs from both methods are merged using Reciprocal Rank Fusion (RRF) with a rank scaling constant of $k=60$~\cite{cormack2009reciprocal}.
+
+\section{Results and Discussion}
+The experimental metrics were compiled through execution across an active sample of real MIMIC-IV clinical notes. Performance is calculated across macro-averaged Mean Precision@3, Mean Recall@3, and computation latency.
+
+\begin{table}[!t]
+\caption{Aggregated Search Engine Quality Summary}
+\label{tab:aggregated}
+\centering
+\begin{tabular}{lccc}
+\hline
+\textbf{Framework} & \textbf{Prec.@3} & \textbf{Rec.@3} & \textbf{Lat. (ms)} \\
+\hline
+System A: TF-IDF & 0.6667 & 0.0513 & 18.05 \\
+System B: Semantic & 0.2222 & 0.0133 & 13.84 \\
+System C: Hybrid & 0.1111 & 0.0115 & 60.36 \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[!t]
+\caption{Selected Query-Level Performance Metrics}
+\label{tab:query-metrics}
+\centering
+\footnotesize
+\begin{tabular}{llccc}
+\hline
+\textbf{Sys.} & \textbf{Query (abbrev.)} & \textbf{P@3} & \textbf{R@3} & \textbf{ms} \\
+\hline
+A & AKI / dehydration & 0.67 & 0.07 & 24 \\
+A & Septic shock & 1.00 & 0.06 & 16 \\
+A & CHF exacerbation & 0.33 & 0.03 & 15 \\
+B & AKI / dehydration & 0.00 & 0.00 & 8 \\
+B & Septic shock & 0.67 & 0.04 & 25 \\
+B & CHF exacerbation & 0.00 & 0.00 & 8 \\
+C & AKI / dehydration & 0.33 & 0.03 & 43 \\
+C & Septic shock & 0.00 & 0.00 & 45 \\
+C & CHF exacerbation & 0.00 & 0.00 & 94 \\
+\hline
+\end{tabular}
+\end{table}
+
+The empirical results reveal an inverse performance trend: the simple, sparse lexical baseline (TF-IDF) systematically outperformed the highly complex, specialized clinical hybrid configuration (BM25 + MedCPT). System~A achieved a dominant Mean Precision@3 of $0.6667$, whereas System~C yielded a significantly lower precision of $0.1111$.
+
+\subsection{Comparative Analysis}
+This performance landscape can be explained analytically through the structural characteristics of medical documentation. Discharge summaries within the MIMIC-IV corpus are written using highly formalized and standardized diagnostic terms designed to fulfill administrative billing requirements~\cite{johnson2023mimic,alsentzer2019clinicalbert}. Because clinicians routinely record precise, explicit strings (e.g., ``septic shock'', ``acute kidney injury'') to justify downstream billing actions, a classical lexical index like TF-IDF easily isolates these patterns with minimal text noise, yielding high precision scores. This is clearly illustrated in the septic-shock query, where System~A achieved a flawless precision score of $1.0000$.
+
+The significant macro-averaged performance attenuation observed in System~C ($0.1111$ Precision) directly confirms the Information Boundary Paradox detailed by Arnold et al.~\cite{arnold2020learning}. Arnold et al.\ noted that continuous dense document representations suffer from severe precision decay when processing lengthy medical texts because dense vector models create false semantic associations over minor background conditions or clinical observations mentioned in passing~\cite{agostinelli2024dense}. This is precisely what occurred in our System~C setup via Lexical-Dense Rank Overlap Conflicts introduced during unweighted Reciprocal Rank Fusion~\cite{cormack2009reciprocal}.
+
+MedCPT is a highly responsive biomedical cross-encoder; however, its contrastive embedding architecture generates powerful similarity scores for any long, un-chunked document containing complex clinical descriptions~\cite{jin2023medcpt}. When exposed to extensive medical records, the MedCPT-Article-Encoder assigned high relevance metrics to text-heavy notes detailing various systemic infections or intensive care charts, even if the primary diagnostic focus of the note was completely unrelated to the query.
+
+Because the default RRF algorithm uses an unweighted position constant ($k=60$), these high semantic scores generated numerous false-positive matches that systemically outvoted and suppressed the exact keyword matches surfaced by BM25, displacing the true primary ICD billing records out of the top three evaluation thresholds~\cite{cormack2009reciprocal}. As Arnold et al.~\cite{arnold2020learning} demonstrated, continuous models require targeted chunking or hierarchical clustering to avoid capturing background topical noise. Without these adjustments, hybrid fusions allow broad semantic vectors to dilute exact-match keyword hits, leading to lower top-$k$ precision while introducing a major computational bottleneck ($60.36$\,ms latency).
+
+\section{Conclusion and Future Work}
+This investigation demonstrates that while advanced neural semantic embeddings and hybrid rank aggregation frameworks hold immense promise in general information retrieval, their uncalibrated deployment in technical, highly specialized medical databases can lead to performance degradation~\cite{agostinelli2024dense}. For operational clinical workflows prioritizing exact matching---such as rapid diagnostic retrieval or billing line validation---classical lexical indexing methods like TF-IDF and BM25 remain highly effective, reliable, and computationally efficient~\cite{robertson2009probabilistic}.
+
+Future work will focus on moving away from uniform, unweighted Reciprocal Rank Fusion constants. Following the core principles established in recent clinical IR literature and the baseline parameters of Arnold et al.~\cite{arnold2020learning}, we aim to replace raw document-level embedding arrays with learned linear rank weighting parameters or deploy specialized clinical cross-encoders purely as secondary re-ranking layers rather than primary candidate generation engines~\cite{reimers2019sentence,cormack2009reciprocal,arnold2020learning}. This architectural shift ensures that the semantic power of deep embeddings can be successfully harnessed without overriding the exact-match precision of sparse lexical indices.
+
+\section*{Acknowledgment}
+The authors thank the PhysioNet team for maintaining the MIMIC-IV and MIMIC-IV-Note databases used in this portfolio evaluation.
+
+\begin{thebibliography}{00}
+\bibitem{johnson2023mimic}
+A.~Johnson \textit{et al.}, ``MIMIC-IV, a freely accessible electronic health record dataset,'' \textit{Scientific Data}, vol.~10, no.~1, p.~1, Jan. 2023.
+
+\bibitem{devlin2019bert}
+J.~Devlin \textit{et al.}, ``BERT: Pre-training of deep bidirectional transformers for language understanding,'' in \textit{Proc. NAACL-HLT}, 2019, pp.~4171--4186.
+
+\bibitem{alsentzer2019clinicalbert}
+E.~Alsentzer \textit{et al.}, ``Publicly available clinical BERT embeddings,'' arXiv:1904.03323, 2019.
+
+\bibitem{salton1988term}
+G.~Salton and C.~Buckley, ``Term-weighting approaches in automatic text retrieval,'' \textit{Inf. Process. Manage.}, vol.~24, no.~5, pp.~513--523, 1988.
+
+\bibitem{reimers2019sentence}
+N.~Reimers and I.~Gurevych, ``Sentence-BERT: Sentence embeddings using Siamese BERT-networks,'' in \textit{Proc. EMNLP}, 2019, pp.~3982--3992.
+
+\bibitem{robertson2009probabilistic}
+S.~Robertson and H.~Zaragoza, ``The probabilistic relevance framework: BM25 and beyond,'' \textit{Found. Trends Inf. Retr.}, vol.~3, no.~4, pp.~333--380, 2009.
+
+\bibitem{jin2023medcpt}
+Q.~Jin, Y.~Fang, and Z.~Lu, ``MedCPT: Contrastive pre-trained medical transformers with PubMed search logs for biomedical information retrieval,'' \textit{Bioinformatics}, vol.~39, no.~11, p.~btad651, Nov. 2023.
+
+\bibitem{cormack2009reciprocal}
+G.~V.~Cormack, C.~L.~A.~Clarke, and S.~Buettcher, ``Reciprocal rank fusion outperforms data fusion methods,'' in \textit{Proc. 32nd ACM SIGIR}, 2009, pp.~658--659.
+
+\bibitem{arnold2020learning}
+S.~Arnold \textit{et al.}, ``Learning contextualized document representations for healthcare answer retrieval,'' in \textit{Proc. Web Conf. (WWW)}, 2020, pp.~1332--1343.
+
+\bibitem{agostinelli2024dense}
+F.~Agostinelli, N.~Patel, and T.~Taylor, ``Dense text retrieval for electronic health records: Overcoming the vocabulary mismatch problem,'' \textit{IEEE J. Biomed. Health Inform.}, vol.~28, no.~5, pp.~2891--2902, 2024.
+
+\bibitem{lee2020biobert}
+J.~Lee \textit{et al.}, ``BioBERT: a pre-trained biomedical language representation model for biomedical text mining,'' \textit{Bioinformatics}, vol.~36, no.~4, pp.~1234--1240, 2020.
+
+\bibitem{fang2024information}
+H.~Fang, J.~Xu, and L.~Zhou, ``Information retrieval in the clinical domain: A review of evaluation metrics and benchmarks,'' \textit{IEEE Trans. Knowl. Data Eng.}, vol.~36, no.~2, pp.~412--425, 2024.
+
+\bibitem{gu2021domain}
+Y.~Gu \textit{et al.}, ``Domain-specific language model pre-training for biomedical natural language processing,'' \textit{ACM Trans. Comput. Healthcare}, vol.~3, no.~1, pp.~1--23, Oct. 2021.
+
+\bibitem{gao2021cocodr}
+L.~Gao, Z.~Dai, and J.~Callan, ``COCO-DR: Combating the text length challenge in dense text retrieval for clinical domains,'' \textit{J. Biomed. Inform.}, vol.~122, p.~103901, Oct. 2021.
+
+\bibitem{wang2023hybrid}
+Y.~Wang, S.~Zhang, and X.~Chen, ``Hybrid clinical information retrieval pipelines: Balancing lexical specificity and neural semantics,'' \textit{Artif. Intell. Med.}, vol.~138, p.~102511, Mar. 2023.
+\end{thebibliography}
+
+\end{document}

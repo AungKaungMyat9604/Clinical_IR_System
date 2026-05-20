@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# OS
+.DS_Store
+
+# MIMIC / large data (download locally after clone)
+datasets/
+physionet.org/
+
+# Model weights (download separately — see README)
+clinical_ir_app/models/*
+!clinical_ir_app/models/.gitignore
+
+# LaTeX build artifacts (keep .tex and .pdf)
+Report/*.aux
+Report/*.log
+Report/*.out
+
+# Local exports / scratch
+*.csv
+!clinical_ir_app/**/*.csv
