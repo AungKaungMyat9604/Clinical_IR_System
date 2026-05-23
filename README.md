@@ -182,6 +182,19 @@ These are excluded via `.gitignore` and must be set up locally:
 
 ---
 
+## Export presentation to PowerPoint
+
+`Presentation.html` can be exported as `presentation.pptx` (one PNG image per slide via html2canvas + pptxgenjs):
+
+```bash
+npm install
+npm run export:pptx
+```
+
+Requires Node.js 18+. The script uses headless Chrome (Puppeteer) to render each slide, then writes `presentation.pptx` in the project root (~22 MB for 24 slides).
+
+---
+
 ## Report
 
 The IEEE-format write-up is in `Report/report.tex` (compiled PDF: `Report/report.pdf`).

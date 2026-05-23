@@ -24,3 +24,6 @@ Report/*.out
 # Local exports / scratch
 *.csv
 !clinical_ir_app/**/*.csv
+
+# Node (HTML → PPTX export)
+node_modules/

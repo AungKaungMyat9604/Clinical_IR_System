@@ -1,5 +1,5 @@
 """
-7CS107 Portfolio Evaluation Engine — Clinical Information Retrieval Dashboard.
+7CS108 Portfolio Evaluation Engine — Clinical Information Retrieval Dashboard.
 
 Compares TF-IDF, dense semantic (MiniLM), and hybrid BM25+MedCPT on MIMIC-IV discharge notes.
 Evaluation: 10-query graded relevance matrix with MAP and NDCG@3.
@@ -17,10 +17,11 @@ from search_engines import (
     HybridBm25MedCptSearchEngine,
     SemanticSearchEngine,
     TfidfSearchEngine,
+    enable_offline_huggingface_env,
 )
 
 st.set_page_config(
-    page_title="7CS107 Portfolio Evaluation Engine",
+    page_title="7CS108 Portfolio Evaluation Engine",
     page_icon="🔬",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -101,6 +102,8 @@ def _build_engines(
     require_text_match: bool,
     _gt_cache_version: str = _GT_CACHE_VERSION,
 ):
+    enable_offline_huggingface_env()
+
     corpus = load_notes(
         max_rows=max_rows,
         random_seed=random_seed,

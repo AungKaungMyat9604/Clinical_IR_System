@@ -1,0 +1,13 @@
+{
+  "name": "clinical-ir-presentation-export",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "export:pptx": "node scripts/export-to-pptx.mjs"
+  },
+  "dependencies": {
+    "html2canvas": "^1.4.1",
+    "pptxgenjs": "^4.0.1",
+    "puppeteer": "^24.2.0"
+  }
+}
