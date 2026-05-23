@@ -31,8 +31,29 @@ RRF_K_DEFAULT = 60
 RRF_CANDIDATE_POOL = 50
 
 
-def _local_model_ready(path: Path) -> bool:
-    return path.is_dir() and all((path / name).is_file() for name in _REQUIRED_MODEL_FILES)
+def _local_files_ready(path: Path, files: tuple[str, ...]) -> bool:
+    return path.is_dir() and all((path / name).is_file() for name in files)
+
+
+def _local_medcpt_pair_ready() -> bool:
+    return _local_files_ready(_MEDCPT_QUERY_DIR, _MEDCPT_REQUIRED_FILES) and _local_files_ready(
+        _MEDCPT_ARTICLE_DIR, _MEDCPT_REQUIRED_FILES
+    )
+
+
+def enable_offline_huggingface_env() -> bool:
+    """
+    Set HF/Transformers offline flags when local model folders are complete.
+
+    Call before loading models so Streamlit uses disk only (no Hugging Face API calls).
+    Returns True if offline mode was enabled.
+    """
+    mini_ready = _local_files_ready(_DEFAULT_LOCAL_MODEL_DIR, _REQUIRED_MODEL_FILES)
+    if mini_ready or _local_medcpt_pair_ready():
+        os.environ["HF_HUB_OFFLINE"] = "1"
+        os.environ["TRANSFORMERS_OFFLINE"] = "1"
+        return True
+    return False
 
 
 def resolve_embedding_model_path(model_name: str | None = None) -> str:
@@ -48,14 +69,10 @@ def resolve_embedding_model_path(model_name: str | None = None) -> str:
     if env_path and Path(env_path).is_dir():
         return str(Path(env_path).resolve())
 
-    if _local_model_ready(_DEFAULT_LOCAL_MODEL_DIR):
+    if _local_files_ready(_DEFAULT_LOCAL_MODEL_DIR, _REQUIRED_MODEL_FILES):
         return str(_DEFAULT_LOCAL_MODEL_DIR)
 
     return model_name or _HF_MODEL_ID
-
-
-def _local_medcpt_ready(path: Path) -> bool:
-    return path.is_dir() and all((path / name).is_file() for name in _MEDCPT_REQUIRED_FILES)
 
 
 def _medcpt_missing_files_message(query_path: Path, article_path: Path) -> str | None:
@@ -82,7 +99,7 @@ def resolve_medcpt_query_path() -> str:
     env = os.environ.get("MEDCPT_QUERY_PATH", "").strip()
     if env and Path(env).is_dir():
         return str(Path(env).resolve())
-    if _local_medcpt_ready(_MEDCPT_QUERY_DIR):
+    if _local_files_ready(_MEDCPT_QUERY_DIR, _MEDCPT_REQUIRED_FILES):
         return str(_MEDCPT_QUERY_DIR)
     return _MEDCPT_QUERY_HF
 
@@ -91,7 +108,7 @@ def resolve_medcpt_article_path() -> str:
     env = os.environ.get("MEDCPT_ARTICLE_PATH", "").strip()
     if env and Path(env).is_dir():
         return str(Path(env).resolve())
-    if _local_medcpt_ready(_MEDCPT_ARTICLE_DIR):
+    if _local_files_ready(_MEDCPT_ARTICLE_DIR, _MEDCPT_REQUIRED_FILES):
         return str(_MEDCPT_ARTICLE_DIR)
     return _MEDCPT_ARTICLE_HF
 
@@ -219,7 +236,7 @@ class SemanticSearchEngine:
         model_path = Path(self._model_name)
         use_local_files = model_path.is_dir()
 
-        if use_local_files and not _local_model_ready(model_path):
+        if use_local_files and not _local_files_ready(model_path, _REQUIRED_MODEL_FILES):
             missing = [f for f in _REQUIRED_MODEL_FILES if not (model_path / f).is_file()]
             raise RuntimeError(
                 f"Local model at {model_path} is incomplete. Missing: {', '.join(missing)}. "
@@ -227,17 +244,30 @@ class SemanticSearchEngine:
                 f"  hf download {_HF_MODEL_ID} --local-dir {_DEFAULT_LOCAL_MODEL_DIR}"
             )
 
+        enable_offline_huggingface_env()
+
         try:
             self._model = SentenceTransformer(
                 self._model_name,
                 local_files_only=use_local_files,
+                device="cpu",
+                model_kwargs={"low_cpu_mem_usage": False},
             )
         except Exception as exc:
+            hint = (
+                "Re-download MiniLM: hf download sentence-transformers/all-MiniLM-L6-v2 "
+                f"--local-dir {_DEFAULT_LOCAL_MODEL_DIR}\n"
+                "Then: Streamlit menu → Clear cache → restart."
+            )
+            if "meta tensor" in str(exc).lower():
+                hint = (
+                    "PyTorch/transformers loaded weights on a 'meta' device (known with some versions).\n"
+                    "Try: pip install -r requirements.txt, then Clear cache and restart.\n"
+                    + hint
+                )
             raise RuntimeError(
                 f"Failed to load embedding model '{self._model_name}'.\n"
-                f"Cause: {type(exc).__name__}: {exc}\n"
-                "If the model is already downloaded, run: pip install 'huggingface_hub>=0.34.0,<1.0'\n"
-                "Then restart Streamlit and use menu → Clear cache."
+                f"Cause: {type(exc).__name__}: {exc}\n{hint}"
             ) from exc
 
         self._doc_embeddings = self._model.encode(
@@ -319,19 +349,19 @@ class HybridBm25MedCptSearchEngine:
             if missing_msg:
                 raise RuntimeError(missing_msg)
 
+        enable_offline_huggingface_env()
+        tok_kw = {"local_files_only": use_local}
+        model_kw = {"local_files_only": use_local, "low_cpu_mem_usage": False}
+
         try:
             self._query_tokenizer = AutoTokenizer.from_pretrained(
-                self._query_path, local_files_only=use_local
+                self._query_path, **tok_kw
             )
-            self._query_model = AutoModel.from_pretrained(
-                self._query_path, local_files_only=use_local
-            )
+            self._query_model = AutoModel.from_pretrained(self._query_path, **model_kw)
             self._article_tokenizer = AutoTokenizer.from_pretrained(
-                self._article_path, local_files_only=use_local
+                self._article_path, **tok_kw
             )
-            self._article_model = AutoModel.from_pretrained(
-                self._article_path, local_files_only=use_local
-            )
+            self._article_model = AutoModel.from_pretrained(self._article_path, **model_kw)
         except Exception as exc:
             raise RuntimeError(
                 f"Failed to load MedCPT models.\n"

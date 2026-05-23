@@ -1,6 +1,6 @@
 # Clinical IR Evaluation Engine — Technical Documentation
 
-Developer runbook for the **7CS107 Portfolio Evaluation Engine** (Clinical Information Retrieval Dashboard).
+Developer runbook for the **7CS108 Portfolio Evaluation Engine** (Clinical Information Retrieval Dashboard).
 
 **Disclaimer:** Research and education only. Not for clinical decision-making.
 
@@ -27,10 +27,10 @@ Developer runbook for the **7CS107 Portfolio Evaluation Engine** (Clinical Infor
 
 | Item | Detail |
 |------|--------|
-| **Name** | 7CS107 Portfolio Evaluation Engine — Clinical IR Dashboard |
+| **Name** | 7CS108 Portfolio Evaluation Engine — Clinical IR Dashboard |
 | **Location** | `clinical_ir_app/` under the DataScience workspace |
 | **Purpose** | Compare three retrieval systems on real MIMIC-IV discharge notes with reproducible IR metrics |
-| **Course** | 7CS107 portfolio project |
+| **Course** | 7CS108 portfolio project |
 | **Entry point** | `python -m streamlit run streamlit_app.py` |
 
 ### What the system does

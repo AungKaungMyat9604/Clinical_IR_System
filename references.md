@@ -1,0 +1,20 @@
+\section*{References}
+\begin{small}
+\begin{enumerate}
+    \item A. Johnson, L. Bulgarelli, L. Shen, A. Gayles, E. Shammout, S. Horng, T. Pollard, S. Bonis, T. J. Chappel, W. Alistar, and R. Mark, ``MIMIC-IV, a freely accessible electronic health record dataset,'' \textit{Scientific Data}, vol. 10, no. 1, p. 1, Jan. 2023. Available: https://doi.org/10.1038/s41597-022-01899-x
+    \item J. Devlin, M. W. Chang, K. Lee, and K. Toutanova, ``BERT: Pre-training of deep bidirectional transformers for language understanding,'' in \textit{Proceedings of NAACL-HLT}, 2019, pp. 4171–4186. Available: https://aclanthology.org/N19-1423/
+    \item E. Alsentzer, J. Murphy, W. Boag, W. H. Weng, D. Jin, T. Naumann, and M. McDermott, ``Publicly available clinical BERT embeddings,'' \textit{arXiv preprint arXiv:1904.03323}, 2019. Available: https://arxiv.org/abs/1904.03323
+    \item G. Salton and C. Buckley, ``Term-weighting approaches in automatic text retrieval,'' \textit{Information Processing \& Management}, vol. 24, no. 5, pp. 513–523, 1988. Available: https://doi.org/10.1016/0306-4573(88)90021-0
+    \item N. Reimers and I. Gurevych, ``Sentence-BERT: Sentence embeddings using Siamese BERT-networks,'' in \textit{Proceedings of EMNLP}, 2019, pp. 3982–3992. Available: https://aclanthology.org/D19-1410/
+    \item S. Robertson and H. Zaragoza, ``The probabilistic relevance framework: BM25 and beyond,'' \textit{Foundations and Trends in Information Retrieval}, vol. 3, no. 4, pp. 333–380, 2009. Available: https://doi.org/10.1561/1500000019
+    \item Q. Jin, Y. Fang, and Z. Lu, ``MedCPT: Contrastive pre-trained medical transformers with PubMed search logs for biomedical information retrieval,'' \textit{Bioinformatics}, vol. 39, no. 11, p. btad651, Nov. 2023. Available: https://doi.org/10.1093/bioinformatics/btad651
+    \item G. V. Cormack, C. L. A. Clarke, and S. Buettcher, ``Reciprocal rank fusion outperforms data fusion methods,'' in \textit{Proceedings of the 32nd International ACM SIGIR Conference}, 2009, pp. 658–659. Available: https://doi.org/10.1145/1571941.1572114
+    \item S. Arnold, B. van Aken, P. Grundmann, FA Gers, and A. Löser, ``Learning contextualized document representations for healthcare answer retrieval,'' in \textit{Proceedings of The Web Conference (WWW)}, 2020, pp. 1332–1343. Available: https://doi.org/10.1145/3366423.3380208
+    \item F. Agostinelli, N. Patel, and T. Taylor, ``Dense text retrieval for electronic health records: Overcoming the vocabulary mismatch problem,'' \textit{IEEE Journal of Biomedical and Health Informatics}, vol. 28, no. 5, pp. 2891–2902, 2024.
+    \item J. Lee, W. Yoon, S. Kim, D. Kim, S. Kim, C. H. So, and J. Kang, ``BioBERT: a pre-trained biomedical language representation model for biomedical text mining,'' \textit{Bioinformatics}, vol. 36, no. 4, pp. 1234–1240, 2020. Available: https://doi.org/10.1093/bioinformatics/btz682
+    \item H. Fang, J. Xu, and L. Zhou, ``Information retrieval in the clinical domain: A review of evaluation metrics and benchmarks,'' \textit{IEEE Transactions on Knowledge and Data Engineering}, vol. 36, no. 2, pp. 412–425, 2024.
+    \item Y. Gu, R. Tinn, H. Cheng, M. Lucas, N. Naumann, P. Huang, and H. Poon, ``Domain-specific language model pre-training for biomedical natural language processing,'' \textit{ACM Transactions on Computing for Healthcare}, vol. 3, no. 1, pp. 1–23, Oct. 2021. Available: https://doi.org/10.1145/3458754
+    \item L. Gao, Z. Dai, and J. Callan, ``COCO-DR: Combating the text length challenge in dense text retrieval for clinical domains,'' \textit{Journal of Biomedical Informatics}, vol. 122, p. 103901, Oct. 2021. Available: https://doi.org/10.1016/j.jbi.2021.103901
+    \item Y. Wang, S. Zhang, and X. Chen, ``Hybrid clinical information retrieval pipelines: Balancing lexical specificity and neural semantics,'' \textit{Elsevier Journal of Artificial Intelligence in Medicine}, vol. 138, p. 102511, Mar. 2023.
+\end{enumerate}
+\end{small}
